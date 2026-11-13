@@ -1,6 +1,11 @@
 import type { Locator, Page } from '@playwright/test';
 import { BasePage } from './BasePage';
-import type { Customer } from '@frontend/data/ui.data';
+
+export interface Customer {
+  firstName: string;
+  lastName: string;
+  postalCode: string;
+}
 
 /** Paso 1 del checkout: datos del comprador (/checkout-step-one.html). */
 export class CheckoutInformationPage extends BasePage {

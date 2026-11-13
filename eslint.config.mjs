@@ -4,7 +4,7 @@ import tseslint from 'typescript-eslint';
 import playwright from 'eslint-plugin-playwright';
 
 export default tseslint.config(
-  { ignores: ['node_modules/', 'playwright-report/', 'test-results/', 'blob-report/', 'playwright/'] },
+  { ignores: ['node_modules/', 'playwright-report/', 'test-results/', 'blob-report/', 'playwright/', '.features-gen/'] },
   js.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
   {
@@ -18,7 +18,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['frontend/tests/**/*.ts', 'backend/tests/**/*.ts'],
+    files: ['frontend/setup/**/*.ts', 'frontend/steps/**/*.ts', 'backend/tests/**/*.ts'],
     ...playwright.configs['flat/recommended'],
     rules: {
       ...playwright.configs['flat/recommended'].rules,
@@ -31,6 +31,11 @@ export default tseslint.config(
       // Las aserciones viven en los tests y en los page objects (expect* helpers)
       'playwright/expect-expect': ['warn', { assertFunctionPatterns: ['^expect'] }],
     },
+  },
+  {
+    // En BDD las aserciones viven en los pasos "Entonces", fuera de un test()
+    files: ['frontend/steps/**/*.ts'],
+    rules: { 'playwright/no-standalone-expect': 'off' },
   },
   { files: ['eslint.config.mjs'], ...tseslint.configs.disableTypeChecked },
 );

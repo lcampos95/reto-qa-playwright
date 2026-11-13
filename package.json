@@ -8,6 +8,7 @@
   },
   "scripts": {
     "test": "playwright test",
+    "bddgen": "bddgen",
     "test:frontend": "playwright test --project=frontend-chromium --project=frontend-firefox",
     "test:frontend:chromium": "playwright test --project=frontend-chromium",
     "test:backend": "playwright test --project=backend",
@@ -18,7 +19,8 @@
     "report": "playwright show-report",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "check": "npm run typecheck && npm run lint"
+    "check": "npm run typecheck && npm run lint",
+    "bdd:steps": "bddgen export"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
@@ -27,6 +29,7 @@
     "dotenv": "^17.4.2",
     "eslint": "^9.39.5",
     "eslint-plugin-playwright": "^2.12.2",
+    "playwright-bdd": "^9.2.1",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.72.2"
   }

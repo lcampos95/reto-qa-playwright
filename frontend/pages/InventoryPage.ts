@@ -17,6 +17,16 @@ export const SortOption = {
 
 export type SortOption = (typeof SortOption)[keyof typeof SortOption];
 
+/** Busca la opción por el texto visible en el <select> (el que se usa en los .feature). */
+export function sortOptionByLabel(label: string): SortOption {
+  const option = Object.values(SortOption).find((candidate) => candidate.label === label);
+  if (!option) {
+    const valid = Object.values(SortOption).map((candidate) => `"${candidate.label}"`).join(', ');
+    throw new Error(`Criterio de orden desconocido "${label}". Opciones válidas: ${valid}`);
+  }
+  return option;
+}
+
 /** Listado de productos (/inventory.html). */
 export class InventoryPage extends BasePage {
   protected readonly path = '/inventory.html';

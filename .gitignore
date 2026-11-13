@@ -8,6 +8,9 @@ node_modules/
 /playwright/.cache/
 /playwright/.auth/
 
+# Tests generados desde los .feature (playwright-bdd)
+/.features-gen/
+
 # Variables locales (pueden contener secretos)
 .env
 .env.*.local

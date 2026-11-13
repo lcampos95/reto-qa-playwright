@@ -1,12 +1,16 @@
 import { defineConfig, devices } from '@playwright/test';
 import { env } from './shared/config/env';
 import { STANDARD_USER_STATE } from './frontend/config/auth-state';
+import { FRONTEND_BDD_TEST_DIR, generateBddTests } from './frontend/config/bdd';
+
+// Convierte los .feature del frontend en tests de Playwright antes de ejecutarlos
+generateBddTests();
 
 const isCI = !!process.env.CI;
 
 /**
  * Una sola configuración con dos proyectos de pruebas:
- *  - frontend: UI de SauceDemo (setup de sesión + Chromium + Firefox)
+ *  - frontend: UI de SauceDemo en BDD/Gherkin + POM (setup de sesión + Chromium + Firefox)
  *  - backend:  API de ServeRest (sin navegador)
  * `npx playwright test` ejecuta ambos y genera un único reporte HTML.
  */
@@ -34,13 +38,13 @@ export default defineConfig({
     // ---------- FRONTEND · UI (SauceDemo) ----------
     {
       name: 'frontend-setup',
-      testDir: './frontend/tests',
+      testDir: './frontend/setup',
       testMatch: /.*\.setup\.ts/,
       use: { ...devices['Desktop Chrome'], baseURL: env.ui.baseUrl },
     },
     {
       name: 'frontend-chromium',
-      testDir: './frontend/tests',
+      testDir: FRONTEND_BDD_TEST_DIR,
       dependencies: ['frontend-setup'],
       use: {
         ...devices['Desktop Chrome'],
@@ -50,7 +54,7 @@ export default defineConfig({
     },
     {
       name: 'frontend-firefox',
-      testDir: './frontend/tests',
+      testDir: FRONTEND_BDD_TEST_DIR,
       dependencies: ['frontend-setup'],
       use: {
         ...devices['Desktop Firefox'],
