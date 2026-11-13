@@ -29,12 +29,13 @@ export default defineConfig({
     // ---------- UI (SauceDemo) ----------
     {
       name: 'setup',
-      testMatch: /ui\/auth\.setup\.ts/,
+      testDir: './tests/ui',
+      testMatch: /.*\.setup\.ts/,
       use: { baseURL: env.ui.baseUrl, ...devices['Desktop Chrome'] },
     },
     {
       name: 'ui-chromium',
-      testMatch: /ui\/.*\.spec\.ts/,
+      testDir: './tests/ui',
       dependencies: ['setup'],
       use: {
         ...devices['Desktop Chrome'],
@@ -44,7 +45,7 @@ export default defineConfig({
     },
     {
       name: 'ui-firefox',
-      testMatch: /ui\/.*\.spec\.ts/,
+      testDir: './tests/ui',
       dependencies: ['setup'],
       use: {
         ...devices['Desktop Firefox'],
@@ -56,7 +57,7 @@ export default defineConfig({
     // ---------- API (ServeRest) ----------
     {
       name: 'api',
-      testMatch: /api\/.*\.spec\.ts/,
+      testDir: './tests/api',
       use: {
         baseURL: env.api.baseUrl,
         extraHTTPHeaders: { Accept: 'application/json' },
