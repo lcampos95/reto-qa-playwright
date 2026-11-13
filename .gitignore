@@ -1,0 +1,18 @@
+# Dependencias
+node_modules/
+
+# Artefactos de Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
+
+# Variables locales (pueden contener secretos)
+.env
+.env.*.local
+
+# Editor / SO
+.DS_Store
+Thumbs.db
+.idea/
