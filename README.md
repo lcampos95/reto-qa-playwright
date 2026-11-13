@@ -1,5 +1,7 @@
 # Reto técnico QA Automation · Playwright + TypeScript
 
+[![Playwright Tests](https://github.com/lcampos95/reto-qa-playwright/actions/workflows/playwright.yml/badge.svg)](https://github.com/lcampos95/reto-qa-playwright/actions/workflows/playwright.yml)
+
 Suite de pruebas automatizadas de **UI** sobre [SauceDemo](https://www.saucedemo.com) y de **API** sobre [ServeRest](https://serverest.dev), construida con Playwright y el runner `@playwright/test`.
 
 El repositorio está organizado en **dos proyectos de pruebas** que comparten una sola configuración y un solo reporte:
@@ -46,7 +48,7 @@ El repositorio está organizado en **dos proyectos de pruebas** que comparten un
 ## 2. Instalación
 
 ```bash
-git clone https://github.com/<tu-usuario>/reto-qa-playwright.git
+git clone https://github.com/lcampos95/reto-qa-playwright.git
 cd reto-qa-playwright
 
 npm ci                                   # instala dependencias exactas del package-lock
