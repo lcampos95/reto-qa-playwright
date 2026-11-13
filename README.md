@@ -6,14 +6,14 @@ El repositorio está organizado en **dos proyectos de pruebas** que comparten un
 
 | Proyecto | Carpeta | Qué prueba | Proyectos de Playwright |
 |---|---|---|---|
-| **Frontend** | `frontend/` | UI de SauceDemo (UI-01 a UI-04) | `frontend-setup`, `frontend-chromium`, `frontend-firefox` |
+| **Frontend** | `frontend/` | UI de SauceDemo (UI-01 a UI-04), escrita en **BDD (Gherkin)** sobre **Page Object Model** | `frontend-setup`, `frontend-chromium`, `frontend-firefox` |
 | **Backend** | `backend/` | API de ServeRest (API-01 a API-05) | `backend` |
 
 | | |
 |---|---|
 | **Escenarios** | 4 de UI (UI-01 a UI-04) y 5 de API (API-01 a API-05) |
 | **Navegadores UI** | Chromium y Firefox |
-| **Patrón UI** | Page Object Model con componentes y fixtures |
+| **Patrón UI** | Page Object Model con componentes y fixtures; escenarios en BDD/Gherkin en español con [playwright-bdd](https://vitalets.github.io/playwright-bdd/) |
 | **Reporte** | Reporte HTML de Playwright (+ trazas, capturas y video en fallos) |
 | **CI** | GitHub Actions; el reporte se publica como artefacto |
 
@@ -66,10 +66,12 @@ No hace falta crear ningún archivo de configuración: los valores del entorno d
 | Solo UI en Chromium | `npm run test:frontend:chromium` |
 | **Solo API** · proyecto backend | `npm run test:backend` · alias `npm run test:api` |
 | Solo los escenarios marcados `@smoke` | `npm run test:smoke` |
-| Un escenario concreto | `npx playwright test -g "UI-03"` |
+| Un escenario concreto | `npx playwright test -g "UI-03"` · o por tag de Gherkin `--grep @UI-03` |
 | UI con navegador visible | `npm run test:headed` |
 | Modo interactivo (UI Mode) | `npx playwright test --ui` |
 | Typecheck + lint | `npm run check` |
+| Solo generar los tests BDD desde los `.feature` | `npm run bddgen` |
+| Listar los pasos BDD disponibles | `npm run bdd:steps` |
 
 Equivalentes sin scripts de npm:
 
@@ -79,6 +81,8 @@ npx playwright test --project=backend                                        # s
 ```
 
 Al ejecutar el frontend, Playwright corre primero `frontend-setup` (inicio de sesión que se reutiliza); no hay que lanzarlo a mano.
+
+> **BDD sin pasos extra.** Normalmente playwright-bdd exige `npx bddgen && npx playwright test`. Aquí la propia `playwright.config.ts` genera los tests desde los `.feature` al arrancar (`frontend/config/bdd.ts`), así que basta con `npx playwright test`, como pide el reto. Los archivos generados van a `.features-gen/` (ignorado por git) y se regeneran en cada ejecución, por eso nunca quedan desactualizados.
 
 ## 4. Reporte
 
@@ -129,14 +133,17 @@ $env:API_BASE_URL="http://localhost:3000"; npm run test:backend
 
 ```
 .
-├── frontend/                          # PROYECTO FRONTEND · UI de SauceDemo
-│   ├── config/
-│   │   └── auth-state.ts              # Ruta del storageState reutilizado
-│   ├── data/
-│   │   └── ui.data.ts                 # Productos, comprador y textos esperados
-│   ├── fixtures/
-│   │   └── ui.fixtures.ts             # Inyecta los page objects en los tests
-│   ├── pages/
+├── frontend/                          # PROYECTO FRONTEND · UI de SauceDemo (BDD + POM)
+│   ├── features/                      # QUÉ se prueba: escenarios en Gherkin (español)
+│   │   ├── login.feature              # UI-01, UI-02
+│   │   ├── compra.feature             # UI-03
+│   │   └── ordenamiento.feature       # UI-04
+│   ├── steps/                         # CÓMO se traduce cada paso: usa los page objects
+│   │   ├── comun.steps.ts             # Pasos compartidos entre características
+│   │   ├── login.steps.ts
+│   │   ├── compra.steps.ts
+│   │   └── ordenamiento.steps.ts
+│   ├── pages/                         # DÓNDE están los elementos: Page Object Model
 │   │   ├── BasePage.ts                # Ruta + título + cabecera comunes
 │   │   ├── LoginPage.ts
 │   │   ├── InventoryPage.ts
@@ -147,13 +154,17 @@ $env:API_BASE_URL="http://localhost:3000"; npm run test:backend
 │   │   └── components/
 │   │       ├── Header.ts              # Carrito (enlace y contador)
 │   │       └── CartItemList.ts        # Lista de productos (carrito y resumen)
-│   ├── utils/
-│   │   └── price.ts                   # Parseo y suma de precios en centavos
-│   └── tests/
-│       ├── auth.setup.ts              # Login único de standard_user (storageState)
-│       ├── login.spec.ts              # UI-01, UI-02
-│       ├── checkout.spec.ts           # UI-03
-│       └── sorting.spec.ts            # UI-04
+│   ├── fixtures/
+│   │   └── ui.fixtures.ts             # Page objects, contexto del escenario y Given/When/Then
+│   ├── config/
+│   │   ├── bdd.ts                     # Configuración de playwright-bdd y generación automática
+│   │   └── auth-state.ts              # Ruta del storageState reutilizado
+│   ├── data/
+│   │   └── users.ts                   # Roles ("standard", "bloqueado") -> usuario de la configuración
+│   ├── setup/
+│   │   └── auth.setup.ts              # Login único de standard_user (storageState)
+│   └── utils/
+│       └── price.ts                   # Parseo y suma de precios en centavos
 │
 ├── backend/                           # PROYECTO BACKEND · API de ServeRest
 │   ├── api/
@@ -185,24 +196,50 @@ $env:API_BASE_URL="http://localhost:3000"; npm run test:backend
 
 **Dos proyectos, una configuración.** `frontend/` y `backend/` no se importan entre sí: cada uno tiene su propio código de soporte, datos, fixtures y tests. Lo único compartido es la carga de configuración (`shared/config/env.ts`). Se mantiene un solo `package.json` y un solo `playwright.config.ts` porque el reto pide que la suite completa se ejecute con `npx playwright test` y genere un reporte HTML; cada parte se puede ejecutar por separado con su proyecto de Playwright.
 
-**Separación de responsabilidades dentro de cada proyecto:**
+**Capas del frontend (BDD + POM):**
 
-- **Tests** (`*/tests/`): describen el escenario y contienen las aserciones de negocio.
-- **Page objects** (`frontend/pages/`): saben *cómo* interactuar con cada pantalla (locators y acciones). Solo validan que la página cargó o que una acción tuvo efecto.
+```
+features/*.feature  ──►  steps/*.steps.ts  ──►  pages/*.ts  ──►  navegador
+  (qué, en Gherkin)       (Dado/Cuando/Entonces)   (locators y acciones)
+```
+
+- **Features** (`frontend/features/`): describen el comportamiento en lenguaje de negocio, con los datos de ejemplo (productos, comprador, mensajes esperados). No contienen selectores, URLs ni credenciales.
+- **Steps** (`frontend/steps/`): implementan cada frase. Los pasos *Cuando* llaman a métodos de los page objects y los pasos *Entonces* hacen las aserciones. No usan selectores directamente.
+- **Page objects** (`frontend/pages/`): la única capa que conoce la pantalla (locators y acciones). Solo validan que la página cargó o que una acción tuvo efecto.
+
+**Separación de responsabilidades en el backend:**
+
+- **Tests** (`backend/tests/`): describen el escenario y contienen las aserciones de negocio.
 - **Cliente de API** (`backend/api/`): sabe *cómo* llamar a cada endpoint; no valida, devuelve la respuesta para que el test decida.
 - **Datos** (`*/data/`): datos de prueba y textos esperados en un único lugar.
 - **Fixtures** (`*/fixtures/`): conectan todo y preparan/limpian precondiciones.
 
 ## 7. Escenarios automatizados
 
-### Frontend · UI de SauceDemo (`frontend/tests/`)
+### Frontend · UI de SauceDemo (`frontend/features/`)
 
 | ID | Archivo | Qué se valida |
 |---|---|---|
-| UI-01 | `login.spec.ts` | Login con `standard_user` → URL `/inventory.html`, título *Products*, listado con productos, carrito visible y sin mensaje de error. |
-| UI-02 | `login.spec.ts` | Login con `locked_out_user` → mensaje exacto de usuario bloqueado, sigue en el login y no hay productos. Además, si intenta entrar directo a `/inventory.html`, es devuelto al login con el mensaje de acceso restringido. |
-| UI-03 | `checkout.spec.ts` | Agrega 2 productos (contador = 2) → el carrito contiene exactamente esos productos con su precio y cantidad 1 → completa datos del comprador → en el resumen, **Item total = suma de los precios** de los productos elegidos (y Total = Item total + Tax) → confirmación *Thank you for your order!* y carrito vacío. |
-| UI-04 | `sorting.spec.ts` | Ordena por *Price (low to high)* → la opción activa cambia y la **lista completa** de precios queda en el orden esperado (misma cantidad de elementos y orden exacto). Antes verifica que el listado inicial no estaba ya ordenado, para que la prueba realmente demuestre algo. |
+| UI-01 | `login.feature` | Login con `standard_user` → URL `/inventory.html`, título *Products*, listado con productos, carrito visible y sin mensaje de error. |
+| UI-02 | `login.feature` | Login con `locked_out_user` → mensaje exacto de usuario bloqueado, sigue en el login y no hay productos. Además, si intenta entrar directo a `/inventory.html`, es devuelto al login con el mensaje de acceso restringido. |
+| UI-03 | `compra.feature` | Agrega 2 productos (contador = 2) → el carrito contiene exactamente esos productos con su precio y cantidad 1 → completa datos del comprador → en el resumen, **Item total = suma de los precios** de los productos elegidos (y Total = Item total + Tax) → confirmación *Thank you for your order!* y carrito vacío. |
+| UI-04 | `ordenamiento.feature` | Ordena por *Price (low to high)* → la opción activa cambia y la **lista completa** de precios queda en el orden esperado (misma cantidad de elementos y orden exacto). Antes verifica que el listado inicial no estaba ya ordenado, para que la prueba realmente demuestre algo. |
+
+Ejemplo (`frontend/features/ordenamiento.feature`):
+
+```gherkin
+# language: es
+@ui
+Característica: Ordenamiento del listado de productos
+
+  @UI-04
+  Escenario: UI-04 Ordenar por precio de menor a mayor
+    Dado que el usuario autenticado está en el listado de productos
+    Y el listado inicial no está ordenado por precio
+    Cuando ordena los productos por "Price (low to high)"
+    Entonces el criterio de orden activo es "Price (low to high)"
+    Y el listado completo queda ordenado por precio de menor a mayor
+```
 
 ### Backend · API de ServeRest (`backend/tests/`)
 
@@ -216,6 +253,14 @@ $env:API_BASE_URL="http://localhost:3000"; npm run test:backend
 
 ## 8. Decisiones técnicas
 
+**BDD sobre POM, sin cambiar de runner.** El reto exige `@playwright/test`, así que no se usó Cucumber.js (que reemplaza el runner). Se usó **playwright-bdd**: convierte cada escenario Gherkin en un test de Playwright, por lo que se conservan fixtures, paralelismo, proyectos por navegador, reintentos, trazas y el reporte HTML (cada paso Gherkin aparece como un paso del test). Los `.feature` están en español (`# language: es`) y son documentación viva que puede leer alguien de negocio; el POM sigue siendo el patrón de diseño y la única capa que toca la UI.
+
+**Pasos declarativos y reutilizables.** Las frases describen intención ("agrega al carrito los productos"), no clics. Los datos de ejemplo viven en el `.feature` (tablas de productos y comprador, mensajes esperados), así un cambio de datos no requiere tocar código. Los parámetros (`{string}`, `{int}`, tablas) permiten reutilizar un mismo paso, y `missingSteps: 'fail-on-gen'` hace que una frase sin implementar falle al generar, con el código sugerido para implementarla.
+
+**Estado dentro de un escenario.** Lo que un paso necesita pasarle a otro (por ejemplo, los productos elegidos y sus precios) se guarda en la fixture `ctx`, que se crea vacía en cada escenario. No hay variables globales ni estado compartido entre escenarios.
+
+**Usuarios por rol.** Los `.feature` dicen `usuario "standard"` o `usuario "bloqueado"`; `frontend/data/users.ts` resuelve el usuario real desde la configuración. Así no hay credenciales en los escenarios.
+
 **Page Object Model con componentes.** Cada pantalla es una clase con sus locators y acciones. Las partes repetidas en varias pantallas son componentes (`Header`, `CartItemList`), así el carrito y el resumen del checkout comparten la misma lógica de lectura. `BasePage` define cómo se comprueba que una página cargó (URL + título), de forma uniforme.
 
 **Fixtures en lugar de `new Page()` en cada test.** Los tests piden los page objects que necesitan (`async ({ inventoryPage, cartPage }) => ...`) y Playwright los crea sobre el `page` aislado de ese test. En API, las precondiciones (`adminUser`, `adminToken`) son fixtures: cada test obtiene datos propios y la limpieza ocurre automáticamente al final.
@@ -224,7 +269,7 @@ $env:API_BASE_URL="http://localhost:3000"; npm run test:backend
 
 **Sin esperas fijas.** Toda sincronización usa aserciones *web-first* (`toHaveURL`, `toHaveText`, `toHaveCount`, `toBeVisible`) que reintentan hasta cumplirse. Por ejemplo, tras pulsar *Add to cart* se espera a que el botón cambie a *Remove* antes de seguir. La regla `playwright/no-wait-for-timeout` de ESLint impide introducir `waitForTimeout`.
 
-**Reutilización de sesión (opcional del reto).** El proyecto `frontend-setup` inicia sesión una vez y guarda el `storageState` (cookies + localStorage). Los proyectos `frontend-chromium` y `frontend-firefox` arrancan con esa sesión, cada test en su propio contexto. UI-01 y UI-02 prueban el login, así que limpian la sesión con `test.use({ storageState: { cookies: [], origins: [] } })`. La cookie de SauceDemo dura 10 minutos, más que una ejecución completa.
+**Reutilización de sesión (opcional del reto).** El proyecto `frontend-setup` inicia sesión una vez y guarda el `storageState` (cookies + localStorage). Los proyectos `frontend-chromium` y `frontend-firefox` arrancan con esa sesión, cada test en su propio contexto. UI-01 y UI-02 prueban el login, así que `login.feature` lleva el tag `@sin-sesion`: la fixture `storageState` lo detecta (vía `$tags`) y esos escenarios arrancan con el navegador limpio. La cookie de SauceDemo dura 10 minutos, más que una ejecución completa.
 
 **Independencia y paralelismo.** `fullyParallel: true`. Ningún test depende de otro: los de UI tienen contexto propio (carrito incluido) y los de API crean sus propios datos. Se puede comprobar ejecutando un escenario solo (`npx playwright test -g "UI-04"`) o la suite repetida en paralelo (`npx playwright test --workers=4 --repeat-each=3`).
 
@@ -258,23 +303,25 @@ $env:API_BASE_URL="http://localhost:3000"; npm run test:backend
 
 | Cambio | Dónde |
 |---|---|
-| Comprar otros productos en UI-03 | `PRODUCTS_TO_BUY` en `frontend/data/ui.data.ts` |
-| Probar otro criterio de orden | `SortOption` en `frontend/pages/InventoryPage.ts` |
+| Comprar otros productos en UI-03 | Tabla de productos en `frontend/features/compra.feature` (sin tocar código) |
+| Probar otro criterio de orden | En `ordenamiento.feature`: `"Price (high to low)"` y `... de mayor a menor` (los pasos ya lo soportan) |
 | Agregar un navegador (p. ej. WebKit) | Nuevo proyecto en `playwright.config.ts` copiando `frontend-firefox` con `devices['Desktop Safari']` |
 | Apuntar a otro entorno | Crear `env/.env.<nombre>` y ejecutar con `TEST_ENV=<nombre>` |
-| Cambiar un texto esperado | `UI_MESSAGES` en `frontend/data/ui.data.ts` o `API_MESSAGES` en `backend/data/api.data.ts` |
+| Cambiar un texto esperado | UI: en el `.feature` correspondiente · API: `API_MESSAGES` en `backend/data/api.data.ts` |
+| Nuevo escenario de UI | Escribirlo en un `.feature`; si usa una frase nueva, `npx playwright test` muestra el código sugerido del paso para pegarlo en `frontend/steps/` |
 | Nuevo endpoint | Método en `ServeRestClient` + tipo en `backend/api/types.ts` |
 
 ## 11. Uso de herramientas de IA
 
 Se usó **Claude (Anthropic)** como asistente durante el reto para:
 
-- Proponer la estructura inicial del proyecto, los page objects, el cliente de API y las fixtures.
+- Proponer la estructura inicial del proyecto, los page objects, los escenarios Gherkin y sus pasos, el cliente de API y las fixtures.
 - Redactar un primer borrador de este README y de los mensajes de commit.
 - Contrastar los locators y textos esperados con el bundle JavaScript publicado de SauceDemo, y los mensajes y respuestas de ServeRest con su API pública y su código fuente.
 
 Correcciones y ajustes hechos sobre lo generado:
 
+- **BDD con el runner de Playwright:** se descartó Cucumber.js porque reemplaza el runner `@playwright/test` que exige el reto; se usó playwright-bdd. Como su flujo estándar requiere `npx bddgen` antes de `npx playwright test`, se añadió la generación automática desde la configuración (con protección para no ejecutarse dentro de `bddgen` ni en los workers).
 - **Versión de Node:** el enunciado indica Node 18+, pero Playwright 1.65 requiere Node ≥ 20. Se documentó y se fijó la versión en `.nvmrc`.
 - **Formato del `_id`:** la primera versión solo validaba que fuera alfanumérico; se ajustó a 16 caracteres según el esquema de validación de ServeRest.
 - **Lint en API-02:** un `test.step` asíncrono sin `await` no pasaba ESLint (`require-await`); se reescribió como una aserción con mensaje.
