@@ -14,7 +14,7 @@ test.describe('API /usuarios', { tag: '@api' }, () => {
       const body = (await response.json()) as CreatedResponse;
       apiData.trackUser(body._id);
       expect(body).toEqual({ message: API_MESSAGES.REGISTER_SUCCESS, _id: expect.any(String) });
-      expect(body._id).toMatch(/^[A-Za-z0-9]+$/);
+      expect(body._id).toMatch(/^[a-zA-Z0-9]{16}$/);
       return body._id;
     });
 
