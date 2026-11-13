@@ -1,0 +1,268 @@
+# Reto técnico QA Automation · Playwright + TypeScript
+
+Suite de pruebas automatizadas de **UI** sobre [SauceDemo](https://www.saucedemo.com) y de **API** sobre [ServeRest](https://serverest.dev), construida con Playwright y el runner `@playwright/test`.
+
+| | |
+|---|---|
+| **Escenarios** | 4 de UI (UI-01 a UI-04) y 5 de API (API-01 a API-05) |
+| **Navegadores UI** | Chromium y Firefox |
+| **Patrón UI** | Page Object Model con componentes y fixtures |
+| **Reporte** | Reporte HTML de Playwright (+ trazas, capturas y video en fallos) |
+| **CI** | GitHub Actions; el reporte se publica como artefacto |
+
+---
+
+## Índice
+
+1. [Requisitos](#1-requisitos)
+2. [Instalación](#2-instalación)
+3. [Ejecución](#3-ejecución)
+4. [Reporte](#4-reporte)
+5. [Configuración y variables de entorno](#5-configuración-y-variables-de-entorno)
+6. [Estructura del proyecto](#6-estructura-del-proyecto)
+7. [Escenarios automatizados](#7-escenarios-automatizados)
+8. [Decisiones técnicas](#8-decisiones-técnicas)
+9. [Pipeline de CI](#9-pipeline-de-ci)
+10. [Cambios frecuentes](#10-cambios-frecuentes)
+11. [Uso de herramientas de IA](#11-uso-de-herramientas-de-ia)
+
+---
+
+## 1. Requisitos
+
+- **Node.js 20 o superior** (recomendado 22, la versión fijada en `.nvmrc`).
+  > El enunciado pide Node 18+, pero la versión actual de Playwright (1.65) exige Node ≥ 20.
+- **npm** 10 o superior (viene con Node).
+- **Git**.
+- Opcional: Visual Studio Code con la extensión oficial *Playwright Test for VS Code* (recomendada en `.vscode/extensions.json`).
+
+## 2. Instalación
+
+```bash
+git clone https://github.com/<tu-usuario>/reto-qa-playwright.git
+cd reto-qa-playwright
+
+npm ci                                   # instala dependencias exactas del package-lock
+npx playwright install chromium firefox  # descarga los navegadores
+```
+
+> En Linux puede hacer falta `npx playwright install --with-deps chromium firefox` para instalar también las librerías del sistema.
+
+No hace falta crear ningún archivo de configuración: los valores del entorno de práctica ya están en `env/.env.qa` (ver [sección 5](#5-configuración-y-variables-de-entorno)).
+
+## 3. Ejecución
+
+| Qué ejecutar | Comando |
+|---|---|
+| **Suite completa** (UI en Chromium + Firefox, y API) | `npx playwright test` · o `npm test` |
+| **Solo UI** (Chromium + Firefox) | `npm run test:ui` |
+| Solo UI en Chromium | `npm run test:ui:chromium` |
+| **Solo API** | `npm run test:api` |
+| Solo los escenarios marcados `@smoke` | `npm run test:smoke` |
+| Un escenario concreto | `npx playwright test -g "UI-03"` |
+| UI con navegador visible | `npm run test:headed` |
+| Modo interactivo (UI Mode) | `npx playwright test --ui` |
+| Typecheck + lint | `npm run check` |
+
+Equivalentes sin scripts de npm:
+
+```bash
+npx playwright test --project=ui-chromium --project=ui-firefox   # solo UI
+npx playwright test --project=api                                # solo API
+```
+
+Al ejecutar cualquier proyecto de UI, Playwright corre primero el proyecto `setup` (inicio de sesión que se reutiliza); no hay que lanzarlo a mano.
+
+## 4. Reporte
+
+Cada ejecución genera el reporte HTML en `playwright-report/`. Para abrirlo:
+
+```bash
+npm run report        # equivale a: npx playwright show-report
+```
+
+En el reporte cada escenario muestra sus pasos (`test.step`) y sus etiquetas (`@ui`, `@api`, `@smoke`). Si un test falla, se adjuntan captura de pantalla, video y la **traza** de Playwright, que se puede abrir desde el mismo reporte para ver el DOM, la red y la consola en cada acción.
+
+En CI el reporte se descarga desde la pestaña **Actions → ejecución → Artifacts → `playwright-report`**.
+
+## 5. Configuración y variables de entorno
+
+Ningún test contiene URLs ni credenciales. Todo se lee desde `src/config/env.ts`, que carga los valores con esta precedencia (de mayor a menor):
+
+1. **Variables de entorno del sistema / CI**
+2. **`.env`** en la raíz (local, ignorado por git; plantilla en `.env.example`)
+3. **`env/.env.<TEST_ENV>`** (por defecto `env/.env.qa`, versionado)
+
+| Variable | Uso | Valor en `env/.env.qa` |
+|---|---|---|
+| `TEST_ENV` | Archivo de entorno a cargar desde `env/` | `qa` (por defecto) |
+| `UI_BASE_URL` | URL de SauceDemo | `https://www.saucedemo.com` |
+| `SAUCE_STANDARD_USER` | Usuario con compra normal | `standard_user` |
+| `SAUCE_LOCKED_USER` | Usuario bloqueado | `locked_out_user` |
+| `SAUCE_PASSWORD` | Contraseña común de SauceDemo | `secret_sauce` |
+| `API_BASE_URL` | URL de ServeRest | `https://serverest.dev` |
+
+Si falta una variable o una URL está mal escrita, la suite falla al arrancar con un mensaje claro en lugar de fallar más tarde en un test.
+
+> `env/.env.qa` se versiona porque sus valores son **públicos** (SauceDemo los muestra en su login) y así `npx playwright test` funciona tras clonar. En un proyecto real ese archivo no llevaría secretos: la contraseña llegaría como variable de entorno o secreto del pipeline.
+
+Ejemplo para sobrescribir un valor puntual:
+
+```bash
+# macOS / Linux
+API_BASE_URL=http://localhost:3000 npm run test:api
+```
+
+```powershell
+# Windows PowerShell
+$env:API_BASE_URL="http://localhost:3000"; npm run test:api
+```
+
+## 6. Estructura del proyecto
+
+```
+.
+├── .github/workflows/playwright.yml   # Pipeline de CI
+├── env/
+│   └── .env.qa                        # Configuración del entorno de práctica
+├── src/
+│   ├── api/
+│   │   ├── ServeRestClient.ts         # Cliente de la API sobre el request context
+│   │   ├── ApiDataRegistry.ts         # Registro y limpieza de datos creados por test
+│   │   └── types.ts                   # Contratos (payloads y respuestas)
+│   ├── config/
+│   │   ├── env.ts                     # Carga y validación de la configuración
+│   │   └── auth-state.ts              # Ruta del storageState reutilizado
+│   ├── data/
+│   │   ├── ui.data.ts                 # Productos, comprador y textos esperados de UI
+│   │   └── api.data.ts                # Builders de datos únicos y mensajes de la API
+│   ├── fixtures/
+│   │   ├── ui.fixtures.ts             # Inyecta page objects en los tests
+│   │   └── api.fixtures.ts            # Cliente, precondiciones (adminUser, adminToken) y limpieza
+│   ├── pages/
+│   │   ├── BasePage.ts                # Ruta + título + cabecera comunes
+│   │   ├── LoginPage.ts
+│   │   ├── InventoryPage.ts
+│   │   ├── CartPage.ts
+│   │   ├── CheckoutInformationPage.ts
+│   │   ├── CheckoutOverviewPage.ts
+│   │   ├── CheckoutCompletePage.ts
+│   │   └── components/
+│   │       ├── Header.ts              # Carrito (enlace y contador)
+│   │       └── CartItemList.ts        # Lista de productos (carrito y resumen)
+│   └── utils/
+│       ├── price.ts                   # Parseo y suma de precios en centavos
+│       └── jwt.ts                     # Decodificación del payload de un JWT
+├── tests/
+│   ├── ui/
+│   │   ├── auth.setup.ts              # Login único de standard_user (storageState)
+│   │   ├── login.spec.ts              # UI-01, UI-02
+│   │   ├── checkout.spec.ts           # UI-03
+│   │   └── sorting.spec.ts            # UI-04
+│   └── api/
+│       ├── usuarios.spec.ts           # API-01, API-05
+│       ├── login.spec.ts              # API-02
+│       └── produtos.spec.ts           # API-03, API-04
+├── playwright.config.ts               # Proyectos, reporter, trazas, testIdAttribute
+├── eslint.config.mjs                  # Reglas de TypeScript y de Playwright
+├── tsconfig.json                      # TypeScript estricto + alias (@pages, @api, ...)
+└── .env.example                       # Plantilla para overrides locales
+```
+
+**Separación de responsabilidades:**
+
+- **Tests** (`tests/`): describen el escenario y contienen las aserciones de negocio.
+- **Page objects** (`src/pages/`): saben *cómo* interactuar con cada pantalla (locators y acciones). Solo validan que la página cargó o que una acción tuvo efecto.
+- **Cliente de API** (`src/api/`): sabe *cómo* llamar a cada endpoint; no valida, devuelve la respuesta para que el test decida.
+- **Datos** (`src/data/`): datos de prueba y textos esperados en un único lugar.
+- **Fixtures** (`src/fixtures/`): conectan todo y preparan/limpian precondiciones.
+
+## 7. Escenarios automatizados
+
+### UI · SauceDemo
+
+| ID | Archivo | Qué se valida |
+|---|---|---|
+| UI-01 | `login.spec.ts` | Login con `standard_user` → URL `/inventory.html`, título *Products*, listado con productos, carrito visible y sin mensaje de error. |
+| UI-02 | `login.spec.ts` | Login con `locked_out_user` → mensaje exacto de usuario bloqueado, sigue en el login y no hay productos. Además, si intenta entrar directo a `/inventory.html`, es devuelto al login con el mensaje de acceso restringido. |
+| UI-03 | `checkout.spec.ts` | Agrega 2 productos (contador = 2) → el carrito contiene exactamente esos productos con su precio y cantidad 1 → completa datos del comprador → en el resumen, **Item total = suma de los precios** de los productos elegidos (y Total = Item total + Tax) → confirmación *Thank you for your order!* y carrito vacío. |
+| UI-04 | `sorting.spec.ts` | Ordena por *Price (low to high)* → la opción activa cambia y la **lista completa** de precios queda en el orden esperado (misma cantidad de elementos y orden exacto). Antes verifica que el listado inicial no estaba ya ordenado, para que la prueba realmente demuestre algo. |
+
+### API · ServeRest
+
+| ID | Archivo | Qué se valida |
+|---|---|---|
+| API-01 | `usuarios.spec.ts` | `POST /usuarios` (admin) → `201`, JSON, body `{ message: "Cadastro realizado com sucesso", _id }` con `_id` de 16 caracteres. Luego `GET /usuarios/{_id}` confirma que se guardó con los datos enviados. |
+| API-02 | `login.spec.ts` | `POST /login` → `200`, mensaje de éxito y `authorization` con formato `Bearer <JWT>`. El payload del token pertenece al email del usuario. |
+| API-03 | `produtos.spec.ts` | `POST /produtos` con token admin → `201` + `_id`. `GET /produtos/{_id}` devuelve **exactamente** `nome`, `preco`, `descricao` y `quantidade` enviados. |
+| API-04 | `produtos.spec.ts` | `POST /produtos` sin header `Authorization` → `401` con el mensaje de token ausente. Luego se verifica que el producto **no** fue creado. |
+| API-05 | `usuarios.spec.ts` | `POST /usuarios` con un email ya registrado → `400` con *Este email já está sendo usado*. Sigue habiendo un único usuario con ese email y sus datos no cambiaron. |
+
+## 8. Decisiones técnicas
+
+**Page Object Model con componentes.** Cada pantalla es una clase con sus locators y acciones. Las partes repetidas en varias pantallas son componentes (`Header`, `CartItemList`), así el carrito y el resumen del checkout comparten la misma lógica de lectura. `BasePage` define cómo se comprueba que una página cargó (URL + título), de forma uniforme.
+
+**Fixtures en lugar de `new Page()` en cada test.** Los tests piden los page objects que necesitan (`async ({ inventoryPage, cartPage }) => ...`) y Playwright los crea sobre el `page` aislado de ese test. En API, las precondiciones (`adminUser`, `adminToken`) son fixtures: cada test obtiene datos propios y la limpieza ocurre automáticamente al final.
+
+**Locators estables.** SauceDemo expone atributos `data-test`; se configuró `testIdAttribute: 'data-test'` para usar `getByTestId()`. Los productos se localizan **por nombre**, no por posición ni por ids derivados del nombre, y los botones por rol (`getByRole('button', { name: 'Add to cart' })`).
+
+**Sin esperas fijas.** Toda sincronización usa aserciones *web-first* (`toHaveURL`, `toHaveText`, `toHaveCount`, `toBeVisible`) que reintentan hasta cumplirse. Por ejemplo, tras pulsar *Add to cart* se espera a que el botón cambie a *Remove* antes de seguir. La regla `playwright/no-wait-for-timeout` de ESLint impide introducir `waitForTimeout`.
+
+**Reutilización de sesión (opcional del reto).** El proyecto `setup` inicia sesión una vez y guarda el `storageState` (cookies + localStorage). Los proyectos de UI arrancan con esa sesión, cada test en su propio contexto. UI-01 y UI-02 prueban el login, así que limpian la sesión con `test.use({ storageState: { cookies: [], origins: [] } })`. La cookie de SauceDemo dura 10 minutos, más que una ejecución completa.
+
+**Independencia y paralelismo.** `fullyParallel: true`. Ningún test depende de otro: los de UI tienen contexto propio (carrito incluido) y los de API crean sus propios datos. Se puede comprobar ejecutando un escenario solo (`npx playwright test -g "UI-04"`) o la suite repetida en paralelo (`npx playwright test --workers=4 --repeat-each=3`).
+
+**Datos únicos en la API.** Los builders (`buildUser`, `buildProduct`) generan nombres y emails con `timestamp + fragmento de UUID`, únicos entre ejecuciones, personas y workers en paralelo sobre la instancia pública compartida.
+
+**Limpieza de datos (opcional del reto).** `ApiDataRegistry` registra lo que crea cada test y lo elimina al terminar: primero productos (necesitan el token de un admin que aún exista) y después usuarios. Si una limpieza falla no se marca el test como fallido; se deja una anotación `cleanup-warning` visible en el reporte.
+
+**Precios en centavos.** `29.99 + 9.99` en coma flotante da `39.980000000000004`. Los precios se convierten a enteros en centavos (`src/utils/price.ts`) para comparar sumas sin errores de redondeo.
+
+**Aserciones que comprueban comportamiento, no solo códigos.** Además del status, se compara el body completo con `toEqual` (detecta campos de más o de menos), se verifica la persistencia con un `GET` posterior y, en los casos de rechazo, que no hubo efectos secundarios (no se creó el producto ni un usuario duplicado).
+
+**Navegadores.** UI en Chromium y Firefox (opcional del reto). API en un proyecto aparte sin navegador: arranca más rápido y no se ejecuta dos veces.
+
+**Calidad estática.** TypeScript estricto y ESLint con reglas *type-aware* (`no-floating-promises` detecta `await` olvidados, causa habitual de tests inestables) y las reglas recomendadas de `eslint-plugin-playwright`.
+
+**Reintentos.** `retries: 0` en local para no esconder inestabilidad. En CI se permite 1 reintento por ser sitios públicos externos; si un test pasa al reintentarlo, el reporte lo marca como *flaky*.
+
+**Verificación de la propia suite.** Durante el desarrollo se ejecutó la suite contra dobles locales de SauceDemo y ServeRest en los que se inyectaron defectos de forma controlada (Item total con un centavo extra, orden por nombre en vez de precio, usuario bloqueado que entra, carrito que pierde un producto, email duplicado aceptado, producto creado sin token, precio distinto al consultar, token de otro usuario). Cada defecto hizo fallar el test correspondiente.
+
+## 9. Pipeline de CI
+
+`.github/workflows/playwright.yml` se ejecuta en cada push o pull request a `main` y también manualmente (*Run workflow*):
+
+1. Instala dependencias con `npm ci` (con caché).
+2. Ejecuta `npm run check` (typecheck + lint).
+3. Instala Chromium y Firefox.
+4. Ejecuta `npx playwright test`.
+5. Publica `playwright-report/` como artefacto (14 días) y, si hay fallos, también `test-results/` con trazas y videos.
+
+## 10. Cambios frecuentes
+
+| Cambio | Dónde |
+|---|---|
+| Comprar otros productos en UI-03 | `PRODUCTS_TO_BUY` en `src/data/ui.data.ts` |
+| Probar otro criterio de orden | `SortOption` en `src/pages/InventoryPage.ts` |
+| Agregar un navegador (p. ej. WebKit) | Nuevo proyecto en `playwright.config.ts` copiando `ui-firefox` con `devices['Desktop Safari']` |
+| Apuntar a otro entorno | Crear `env/.env.<nombre>` y ejecutar con `TEST_ENV=<nombre>` |
+| Cambiar un texto esperado | `UI_MESSAGES` (UI) o `API_MESSAGES` (API) en `src/data/` |
+| Nuevo endpoint | Método en `ServeRestClient` + tipo en `src/api/types.ts` |
+
+## 11. Uso de herramientas de IA
+
+Se usó **Claude (Anthropic)** como asistente durante el reto para:
+
+- Proponer la estructura inicial del proyecto, los page objects, el cliente de API y las fixtures.
+- Redactar un primer borrador de este README y de los mensajes de commit.
+- Contrastar los locators y textos esperados con el bundle JavaScript publicado de SauceDemo, y los mensajes y respuestas de ServeRest con su API pública y su código fuente.
+
+Correcciones y ajustes hechos sobre lo generado:
+
+- **Versión de Node:** el enunciado indica Node 18+, pero Playwright 1.65 requiere Node ≥ 20. Se documentó y se fijó la versión en `.nvmrc`.
+- **Formato del `_id`:** la primera versión solo validaba que fuera alfanumérico; se ajustó a 16 caracteres según el esquema de validación de ServeRest.
+- **Lint en API-02:** un `test.step` asíncrono sin `await` no pasaba ESLint (`require-await`); se reescribió como una aserción con mensaje.
+- **Redirección de SauceDemo:** al navegar a `/inventory.html` el sitio responde con HTTP 404 y la SPA redirige (patrón de GitHub Pages). Se verificó que las aserciones *web-first* (`toHaveURL`, `not.toHaveURL`) lo manejan sin esperas fijas.
+- **Duración de la sesión:** se confirmó que la cookie de sesión de SauceDemo dura 10 minutos, suficiente para reutilizar el `storageState` dentro de una ejecución.
+
+Todo el código fue revisado, ejecutado y puede explicarse y modificarse en la sesión de revisión.
