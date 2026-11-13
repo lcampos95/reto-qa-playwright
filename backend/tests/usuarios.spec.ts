@@ -1,6 +1,6 @@
-import { test, expect } from '@fixtures/api.fixtures';
-import { API_MESSAGES, buildUser } from '@data/api.data';
-import type { CreatedResponse, MessageResponse, User, UserListResponse } from '@api/types';
+import { test, expect } from '@backend/fixtures/api.fixtures';
+import { API_MESSAGES, buildUser } from '@backend/data/api.data';
+import type { CreatedResponse, MessageResponse, User, UserListResponse } from '@backend/api/types';
 
 test.describe('API /usuarios', { tag: '@api' }, () => {
   test('API-01 Crear usuario administrador', { tag: '@smoke' }, async ({ serveRest, apiData }) => {

@@ -1,5 +1,5 @@
 import { randomInt, randomUUID } from 'node:crypto';
-import type { ProductPayload, UserPayload } from '@api/types';
+import type { ProductPayload, UserPayload } from '@backend/api/types';
 
 /**
  * Builders de datos de API.

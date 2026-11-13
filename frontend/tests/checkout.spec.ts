@@ -1,8 +1,8 @@
-import { test, expect } from '@fixtures/ui.fixtures';
-import { CUSTOMER, PRODUCTS_TO_BUY, UI_MESSAGES } from '@data/ui.data';
-import type { SelectedProduct } from '@pages/InventoryPage';
-import type { LineItem } from '@pages/components/CartItemList';
-import { formatCents, sumCents } from '@utils/price';
+import { test, expect } from '@frontend/fixtures/ui.fixtures';
+import { CUSTOMER, PRODUCTS_TO_BUY, UI_MESSAGES } from '@frontend/data/ui.data';
+import type { SelectedProduct } from '@frontend/pages/InventoryPage';
+import type { LineItem } from '@frontend/pages/components/CartItemList';
+import { formatCents, sumCents } from '@frontend/utils/price';
 
 /** Normaliza para comparar sin depender del orden en que se listan los productos. */
 const byName = <T extends { name: string }>(a: T, b: T) => a.name.localeCompare(b.name);

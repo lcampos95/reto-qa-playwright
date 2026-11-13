@@ -1,11 +1,16 @@
 import { defineConfig, devices } from '@playwright/test';
-import { env } from './src/config/env';
-import { STANDARD_USER_STATE } from './src/config/auth-state';
+import { env } from './shared/config/env';
+import { STANDARD_USER_STATE } from './frontend/config/auth-state';
 
 const isCI = !!process.env.CI;
 
+/**
+ * Una sola configuración con dos proyectos de pruebas:
+ *  - frontend: UI de SauceDemo (setup de sesión + Chromium + Firefox)
+ *  - backend:  API de ServeRest (sin navegador)
+ * `npx playwright test` ejecuta ambos y genera un único reporte HTML.
+ */
 export default defineConfig({
-  testDir: './tests',
   fullyParallel: true,
   forbidOnly: isCI,
   retries: isCI ? 1 : 0,
@@ -26,17 +31,17 @@ export default defineConfig({
   },
 
   projects: [
-    // ---------- UI (SauceDemo) ----------
+    // ---------- FRONTEND · UI (SauceDemo) ----------
     {
-      name: 'setup',
-      testDir: './tests/ui',
+      name: 'frontend-setup',
+      testDir: './frontend/tests',
       testMatch: /.*\.setup\.ts/,
-      use: { baseURL: env.ui.baseUrl, ...devices['Desktop Chrome'] },
+      use: { ...devices['Desktop Chrome'], baseURL: env.ui.baseUrl },
     },
     {
-      name: 'ui-chromium',
-      testDir: './tests/ui',
-      dependencies: ['setup'],
+      name: 'frontend-chromium',
+      testDir: './frontend/tests',
+      dependencies: ['frontend-setup'],
       use: {
         ...devices['Desktop Chrome'],
         baseURL: env.ui.baseUrl,
@@ -44,9 +49,9 @@ export default defineConfig({
       },
     },
     {
-      name: 'ui-firefox',
-      testDir: './tests/ui',
-      dependencies: ['setup'],
+      name: 'frontend-firefox',
+      testDir: './frontend/tests',
+      dependencies: ['frontend-setup'],
       use: {
         ...devices['Desktop Firefox'],
         baseURL: env.ui.baseUrl,
@@ -54,10 +59,10 @@ export default defineConfig({
       },
     },
 
-    // ---------- API (ServeRest) ----------
+    // ---------- BACKEND · API (ServeRest) ----------
     {
-      name: 'api',
-      testDir: './tests/api',
+      name: 'backend',
+      testDir: './backend/tests',
       use: {
         baseURL: env.api.baseUrl,
         extraHTTPHeaders: { Accept: 'application/json' },

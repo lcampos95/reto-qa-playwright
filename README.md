@@ -2,6 +2,13 @@
 
 Suite de pruebas automatizadas de **UI** sobre [SauceDemo](https://www.saucedemo.com) y de **API** sobre [ServeRest](https://serverest.dev), construida con Playwright y el runner `@playwright/test`.
 
+El repositorio está organizado en **dos proyectos de pruebas** que comparten una sola configuración y un solo reporte:
+
+| Proyecto | Carpeta | Qué prueba | Proyectos de Playwright |
+|---|---|---|---|
+| **Frontend** | `frontend/` | UI de SauceDemo (UI-01 a UI-04) | `frontend-setup`, `frontend-chromium`, `frontend-firefox` |
+| **Backend** | `backend/` | API de ServeRest (API-01 a API-05) | `backend` |
+
 | | |
 |---|---|
 | **Escenarios** | 4 de UI (UI-01 a UI-04) y 5 de API (API-01 a API-05) |
@@ -54,10 +61,10 @@ No hace falta crear ningún archivo de configuración: los valores del entorno d
 
 | Qué ejecutar | Comando |
 |---|---|
-| **Suite completa** (UI en Chromium + Firefox, y API) | `npx playwright test` · o `npm test` |
-| **Solo UI** (Chromium + Firefox) | `npm run test:ui` |
-| Solo UI en Chromium | `npm run test:ui:chromium` |
-| **Solo API** | `npm run test:api` |
+| **Suite completa** (frontend + backend) | `npx playwright test` · o `npm test` |
+| **Solo UI** · proyecto frontend (Chromium + Firefox) | `npm run test:frontend` · alias `npm run test:ui` |
+| Solo UI en Chromium | `npm run test:frontend:chromium` |
+| **Solo API** · proyecto backend | `npm run test:backend` · alias `npm run test:api` |
 | Solo los escenarios marcados `@smoke` | `npm run test:smoke` |
 | Un escenario concreto | `npx playwright test -g "UI-03"` |
 | UI con navegador visible | `npm run test:headed` |
@@ -67,11 +74,11 @@ No hace falta crear ningún archivo de configuración: los valores del entorno d
 Equivalentes sin scripts de npm:
 
 ```bash
-npx playwright test --project=ui-chromium --project=ui-firefox   # solo UI
-npx playwright test --project=api                                # solo API
+npx playwright test --project=frontend-chromium --project=frontend-firefox   # solo UI
+npx playwright test --project=backend                                        # solo API
 ```
 
-Al ejecutar cualquier proyecto de UI, Playwright corre primero el proyecto `setup` (inicio de sesión que se reutiliza); no hay que lanzarlo a mano.
+Al ejecutar el frontend, Playwright corre primero `frontend-setup` (inicio de sesión que se reutiliza); no hay que lanzarlo a mano.
 
 ## 4. Reporte
 
@@ -87,7 +94,7 @@ En CI el reporte se descarga desde la pestaña **Actions → ejecución → Arti
 
 ## 5. Configuración y variables de entorno
 
-Ningún test contiene URLs ni credenciales. Todo se lee desde `src/config/env.ts`, que carga los valores con esta precedencia (de mayor a menor):
+Ningún test contiene URLs ni credenciales. Todo se lee desde `shared/config/env.ts`, que carga los valores con esta precedencia (de mayor a menor):
 
 1. **Variables de entorno del sistema / CI**
 2. **`.env`** en la raíz (local, ignorado por git; plantilla en `.env.example`)
@@ -110,35 +117,25 @@ Ejemplo para sobrescribir un valor puntual:
 
 ```bash
 # macOS / Linux
-API_BASE_URL=http://localhost:3000 npm run test:api
+API_BASE_URL=http://localhost:3000 npm run test:backend
 ```
 
 ```powershell
 # Windows PowerShell
-$env:API_BASE_URL="http://localhost:3000"; npm run test:api
+$env:API_BASE_URL="http://localhost:3000"; npm run test:backend
 ```
 
 ## 6. Estructura del proyecto
 
 ```
 .
-├── .github/workflows/playwright.yml   # Pipeline de CI
-├── env/
-│   └── .env.qa                        # Configuración del entorno de práctica
-├── src/
-│   ├── api/
-│   │   ├── ServeRestClient.ts         # Cliente de la API sobre el request context
-│   │   ├── ApiDataRegistry.ts         # Registro y limpieza de datos creados por test
-│   │   └── types.ts                   # Contratos (payloads y respuestas)
+├── frontend/                          # PROYECTO FRONTEND · UI de SauceDemo
 │   ├── config/
-│   │   ├── env.ts                     # Carga y validación de la configuración
 │   │   └── auth-state.ts              # Ruta del storageState reutilizado
 │   ├── data/
-│   │   ├── ui.data.ts                 # Productos, comprador y textos esperados de UI
-│   │   └── api.data.ts                # Builders de datos únicos y mensajes de la API
+│   │   └── ui.data.ts                 # Productos, comprador y textos esperados
 │   ├── fixtures/
-│   │   ├── ui.fixtures.ts             # Inyecta page objects en los tests
-│   │   └── api.fixtures.ts            # Cliente, precondiciones (adminUser, adminToken) y limpieza
+│   │   └── ui.fixtures.ts             # Inyecta los page objects en los tests
 │   ├── pages/
 │   │   ├── BasePage.ts                # Ruta + título + cabecera comunes
 │   │   ├── LoginPage.ts
@@ -150,36 +147,55 @@ $env:API_BASE_URL="http://localhost:3000"; npm run test:api
 │   │   └── components/
 │   │       ├── Header.ts              # Carrito (enlace y contador)
 │   │       └── CartItemList.ts        # Lista de productos (carrito y resumen)
-│   └── utils/
-│       ├── price.ts                   # Parseo y suma de precios en centavos
-│       └── jwt.ts                     # Decodificación del payload de un JWT
-├── tests/
-│   ├── ui/
-│   │   ├── auth.setup.ts              # Login único de standard_user (storageState)
-│   │   ├── login.spec.ts              # UI-01, UI-02
-│   │   ├── checkout.spec.ts           # UI-03
-│   │   └── sorting.spec.ts            # UI-04
-│   └── api/
+│   ├── utils/
+│   │   └── price.ts                   # Parseo y suma de precios en centavos
+│   └── tests/
+│       ├── auth.setup.ts              # Login único de standard_user (storageState)
+│       ├── login.spec.ts              # UI-01, UI-02
+│       ├── checkout.spec.ts           # UI-03
+│       └── sorting.spec.ts            # UI-04
+│
+├── backend/                           # PROYECTO BACKEND · API de ServeRest
+│   ├── api/
+│   │   ├── ServeRestClient.ts         # Cliente de la API sobre el request context
+│   │   ├── ApiDataRegistry.ts         # Registro y limpieza de datos creados por test
+│   │   └── types.ts                   # Contratos (payloads y respuestas)
+│   ├── data/
+│   │   └── api.data.ts                # Builders de datos únicos y mensajes de la API
+│   ├── fixtures/
+│   │   └── api.fixtures.ts            # Cliente, precondiciones (adminUser, adminToken) y limpieza
+│   ├── utils/
+│   │   └── jwt.ts                     # Decodificación del payload de un JWT
+│   └── tests/
 │       ├── usuarios.spec.ts           # API-01, API-05
 │       ├── login.spec.ts              # API-02
 │       └── produtos.spec.ts           # API-03, API-04
-├── playwright.config.ts               # Proyectos, reporter, trazas, testIdAttribute
+│
+├── shared/
+│   └── config/
+│       └── env.ts                     # Carga y validación de la configuración (usada por ambos)
+├── env/
+│   └── .env.qa                        # Configuración del entorno de práctica
+├── .github/workflows/playwright.yml   # Pipeline de CI
+├── playwright.config.ts               # Proyectos frontend-* y backend, reporter, trazas
 ├── eslint.config.mjs                  # Reglas de TypeScript y de Playwright
-├── tsconfig.json                      # TypeScript estricto + alias (@pages, @api, ...)
+├── tsconfig.json                      # TypeScript estricto + alias (@frontend, @backend, @shared)
 └── .env.example                       # Plantilla para overrides locales
 ```
 
-**Separación de responsabilidades:**
+**Dos proyectos, una configuración.** `frontend/` y `backend/` no se importan entre sí: cada uno tiene su propio código de soporte, datos, fixtures y tests. Lo único compartido es la carga de configuración (`shared/config/env.ts`). Se mantiene un solo `package.json` y un solo `playwright.config.ts` porque el reto pide que la suite completa se ejecute con `npx playwright test` y genere un reporte HTML; cada parte se puede ejecutar por separado con su proyecto de Playwright.
 
-- **Tests** (`tests/`): describen el escenario y contienen las aserciones de negocio.
-- **Page objects** (`src/pages/`): saben *cómo* interactuar con cada pantalla (locators y acciones). Solo validan que la página cargó o que una acción tuvo efecto.
-- **Cliente de API** (`src/api/`): sabe *cómo* llamar a cada endpoint; no valida, devuelve la respuesta para que el test decida.
-- **Datos** (`src/data/`): datos de prueba y textos esperados en un único lugar.
-- **Fixtures** (`src/fixtures/`): conectan todo y preparan/limpian precondiciones.
+**Separación de responsabilidades dentro de cada proyecto:**
+
+- **Tests** (`*/tests/`): describen el escenario y contienen las aserciones de negocio.
+- **Page objects** (`frontend/pages/`): saben *cómo* interactuar con cada pantalla (locators y acciones). Solo validan que la página cargó o que una acción tuvo efecto.
+- **Cliente de API** (`backend/api/`): sabe *cómo* llamar a cada endpoint; no valida, devuelve la respuesta para que el test decida.
+- **Datos** (`*/data/`): datos de prueba y textos esperados en un único lugar.
+- **Fixtures** (`*/fixtures/`): conectan todo y preparan/limpian precondiciones.
 
 ## 7. Escenarios automatizados
 
-### UI · SauceDemo
+### Frontend · UI de SauceDemo (`frontend/tests/`)
 
 | ID | Archivo | Qué se valida |
 |---|---|---|
@@ -188,7 +204,7 @@ $env:API_BASE_URL="http://localhost:3000"; npm run test:api
 | UI-03 | `checkout.spec.ts` | Agrega 2 productos (contador = 2) → el carrito contiene exactamente esos productos con su precio y cantidad 1 → completa datos del comprador → en el resumen, **Item total = suma de los precios** de los productos elegidos (y Total = Item total + Tax) → confirmación *Thank you for your order!* y carrito vacío. |
 | UI-04 | `sorting.spec.ts` | Ordena por *Price (low to high)* → la opción activa cambia y la **lista completa** de precios queda en el orden esperado (misma cantidad de elementos y orden exacto). Antes verifica que el listado inicial no estaba ya ordenado, para que la prueba realmente demuestre algo. |
 
-### API · ServeRest
+### Backend · API de ServeRest (`backend/tests/`)
 
 | ID | Archivo | Qué se valida |
 |---|---|---|
@@ -208,7 +224,7 @@ $env:API_BASE_URL="http://localhost:3000"; npm run test:api
 
 **Sin esperas fijas.** Toda sincronización usa aserciones *web-first* (`toHaveURL`, `toHaveText`, `toHaveCount`, `toBeVisible`) que reintentan hasta cumplirse. Por ejemplo, tras pulsar *Add to cart* se espera a que el botón cambie a *Remove* antes de seguir. La regla `playwright/no-wait-for-timeout` de ESLint impide introducir `waitForTimeout`.
 
-**Reutilización de sesión (opcional del reto).** El proyecto `setup` inicia sesión una vez y guarda el `storageState` (cookies + localStorage). Los proyectos de UI arrancan con esa sesión, cada test en su propio contexto. UI-01 y UI-02 prueban el login, así que limpian la sesión con `test.use({ storageState: { cookies: [], origins: [] } })`. La cookie de SauceDemo dura 10 minutos, más que una ejecución completa.
+**Reutilización de sesión (opcional del reto).** El proyecto `frontend-setup` inicia sesión una vez y guarda el `storageState` (cookies + localStorage). Los proyectos `frontend-chromium` y `frontend-firefox` arrancan con esa sesión, cada test en su propio contexto. UI-01 y UI-02 prueban el login, así que limpian la sesión con `test.use({ storageState: { cookies: [], origins: [] } })`. La cookie de SauceDemo dura 10 minutos, más que una ejecución completa.
 
 **Independencia y paralelismo.** `fullyParallel: true`. Ningún test depende de otro: los de UI tienen contexto propio (carrito incluido) y los de API crean sus propios datos. Se puede comprobar ejecutando un escenario solo (`npx playwright test -g "UI-04"`) o la suite repetida en paralelo (`npx playwright test --workers=4 --repeat-each=3`).
 
@@ -216,11 +232,11 @@ $env:API_BASE_URL="http://localhost:3000"; npm run test:api
 
 **Limpieza de datos (opcional del reto).** `ApiDataRegistry` registra lo que crea cada test y lo elimina al terminar: primero productos (necesitan el token de un admin que aún exista) y después usuarios. Si una limpieza falla no se marca el test como fallido; se deja una anotación `cleanup-warning` visible en el reporte.
 
-**Precios en centavos.** `29.99 + 9.99` en coma flotante da `39.980000000000004`. Los precios se convierten a enteros en centavos (`src/utils/price.ts`) para comparar sumas sin errores de redondeo.
+**Precios en centavos.** `29.99 + 9.99` en coma flotante da `39.980000000000004`. Los precios se convierten a enteros en centavos (`frontend/utils/price.ts`) para comparar sumas sin errores de redondeo.
 
 **Aserciones que comprueban comportamiento, no solo códigos.** Además del status, se compara el body completo con `toEqual` (detecta campos de más o de menos), se verifica la persistencia con un `GET` posterior y, en los casos de rechazo, que no hubo efectos secundarios (no se creó el producto ni un usuario duplicado).
 
-**Navegadores.** UI en Chromium y Firefox (opcional del reto). API en un proyecto aparte sin navegador: arranca más rápido y no se ejecuta dos veces.
+**Navegadores.** El frontend corre en Chromium y Firefox (opcional del reto). El backend es un proyecto sin navegador: arranca más rápido y no se ejecuta una vez por navegador.
 
 **Calidad estática.** TypeScript estricto y ESLint con reglas *type-aware* (`no-floating-promises` detecta `await` olvidados, causa habitual de tests inestables) y las reglas recomendadas de `eslint-plugin-playwright`.
 
@@ -235,19 +251,19 @@ $env:API_BASE_URL="http://localhost:3000"; npm run test:api
 1. Instala dependencias con `npm ci` (con caché).
 2. Ejecuta `npm run check` (typecheck + lint).
 3. Instala Chromium y Firefox.
-4. Ejecuta `npx playwright test`.
+4. Ejecuta `npx playwright test` (proyectos frontend y backend).
 5. Publica `playwright-report/` como artefacto (14 días) y, si hay fallos, también `test-results/` con trazas y videos.
 
 ## 10. Cambios frecuentes
 
 | Cambio | Dónde |
 |---|---|
-| Comprar otros productos en UI-03 | `PRODUCTS_TO_BUY` en `src/data/ui.data.ts` |
-| Probar otro criterio de orden | `SortOption` en `src/pages/InventoryPage.ts` |
-| Agregar un navegador (p. ej. WebKit) | Nuevo proyecto en `playwright.config.ts` copiando `ui-firefox` con `devices['Desktop Safari']` |
+| Comprar otros productos en UI-03 | `PRODUCTS_TO_BUY` en `frontend/data/ui.data.ts` |
+| Probar otro criterio de orden | `SortOption` en `frontend/pages/InventoryPage.ts` |
+| Agregar un navegador (p. ej. WebKit) | Nuevo proyecto en `playwright.config.ts` copiando `frontend-firefox` con `devices['Desktop Safari']` |
 | Apuntar a otro entorno | Crear `env/.env.<nombre>` y ejecutar con `TEST_ENV=<nombre>` |
-| Cambiar un texto esperado | `UI_MESSAGES` (UI) o `API_MESSAGES` (API) en `src/data/` |
-| Nuevo endpoint | Método en `ServeRestClient` + tipo en `src/api/types.ts` |
+| Cambiar un texto esperado | `UI_MESSAGES` en `frontend/data/ui.data.ts` o `API_MESSAGES` en `backend/data/api.data.ts` |
+| Nuevo endpoint | Método en `ServeRestClient` + tipo en `backend/api/types.ts` |
 
 ## 11. Uso de herramientas de IA
 

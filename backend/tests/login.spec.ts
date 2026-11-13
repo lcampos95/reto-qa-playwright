@@ -1,7 +1,7 @@
-import { test, expect } from '@fixtures/api.fixtures';
-import { API_MESSAGES } from '@data/api.data';
-import type { LoginResponse } from '@api/types';
-import { decodeJwtPayload } from '@utils/jwt';
+import { test, expect } from '@backend/fixtures/api.fixtures';
+import { API_MESSAGES } from '@backend/data/api.data';
+import type { LoginResponse } from '@backend/api/types';
+import { decodeJwtPayload } from '@backend/utils/jwt';
 
 test.describe('API /login', { tag: '@api' }, () => {
   test('API-02 Iniciar sesión con el usuario creado devuelve un token', { tag: '@smoke' }, async ({ serveRest, adminUser }) => {

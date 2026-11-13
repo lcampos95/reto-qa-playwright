@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   test:
-    name: UI (chromium, firefox) + API
+    name: Frontend (chromium, firefox) + Backend
     runs-on: ubuntu-latest
     timeout-minutes: 20
 

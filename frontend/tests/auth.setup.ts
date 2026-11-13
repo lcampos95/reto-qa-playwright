@@ -1,8 +1,8 @@
 import { test as setup } from '@playwright/test';
-import { env } from '@config/env';
-import { STANDARD_USER_STATE } from '@config/auth-state';
-import { LoginPage } from '@pages/LoginPage';
-import { InventoryPage } from '@pages/InventoryPage';
+import { env } from '@shared/config/env';
+import { STANDARD_USER_STATE } from '@frontend/config/auth-state';
+import { LoginPage } from '@frontend/pages/LoginPage';
+import { InventoryPage } from '@frontend/pages/InventoryPage';
 
 /**
  * Inicia sesión UNA vez con standard_user y guarda el storageState.

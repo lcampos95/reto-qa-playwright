@@ -1,6 +1,6 @@
 import type { Locator, Page } from '@playwright/test';
 import { BasePage } from './BasePage';
-import type { Customer } from '@data/ui.data';
+import type { Customer } from '@frontend/data/ui.data';
 
 /** Paso 1 del checkout: datos del comprador (/checkout-step-one.html). */
 export class CheckoutInformationPage extends BasePage {

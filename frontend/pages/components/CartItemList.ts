@@ -1,5 +1,5 @@
 import type { Locator, Page } from '@playwright/test';
-import { parsePriceToCents } from '@utils/price';
+import { parsePriceToCents } from '@frontend/utils/price';
 
 export interface LineItem {
   name: string;

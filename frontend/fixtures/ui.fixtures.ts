@@ -1,10 +1,10 @@
 import { test as base } from '@playwright/test';
-import { LoginPage } from '@pages/LoginPage';
-import { InventoryPage } from '@pages/InventoryPage';
-import { CartPage } from '@pages/CartPage';
-import { CheckoutInformationPage } from '@pages/CheckoutInformationPage';
-import { CheckoutOverviewPage } from '@pages/CheckoutOverviewPage';
-import { CheckoutCompletePage } from '@pages/CheckoutCompletePage';
+import { LoginPage } from '@frontend/pages/LoginPage';
+import { InventoryPage } from '@frontend/pages/InventoryPage';
+import { CartPage } from '@frontend/pages/CartPage';
+import { CheckoutInformationPage } from '@frontend/pages/CheckoutInformationPage';
+import { CheckoutOverviewPage } from '@frontend/pages/CheckoutOverviewPage';
+import { CheckoutCompletePage } from '@frontend/pages/CheckoutCompletePage';
 
 /**
  * Fixtures de UI: cada test recibe solo los page objects que pide,

@@ -1,6 +1,6 @@
-import { test, expect } from '@fixtures/ui.fixtures';
-import { env } from '@config/env';
-import { UI_MESSAGES } from '@data/ui.data';
+import { test, expect } from '@frontend/fixtures/ui.fixtures';
+import { env } from '@shared/config/env';
+import { UI_MESSAGES } from '@frontend/data/ui.data';
 
 test.describe('Inicio de sesión', { tag: '@ui' }, () => {
   // Estos escenarios prueban el login en sí: arrancan SIN la sesión reutilizada

@@ -1,7 +1,7 @@
 import type { Locator, Page } from '@playwright/test';
 import { BasePage } from './BasePage';
 import { CartItemList } from './components/CartItemList';
-import { parsePriceToCents } from '@utils/price';
+import { parsePriceToCents } from '@frontend/utils/price';
 
 /** Paso 2 del checkout: resumen y totales (/checkout-step-two.html). */
 export class CheckoutOverviewPage extends BasePage {

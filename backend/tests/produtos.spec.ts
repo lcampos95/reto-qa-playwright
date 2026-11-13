@@ -1,6 +1,6 @@
-import { test, expect } from '@fixtures/api.fixtures';
-import { API_MESSAGES, buildProduct } from '@data/api.data';
-import type { CreatedResponse, MessageResponse, Product, ProductListResponse } from '@api/types';
+import { test, expect } from '@backend/fixtures/api.fixtures';
+import { API_MESSAGES, buildProduct } from '@backend/data/api.data';
+import type { CreatedResponse, MessageResponse, Product, ProductListResponse } from '@backend/api/types';
 
 test.describe('API /produtos', { tag: '@api' }, () => {
   test('API-03 Crear un producto y consultarlo por id', { tag: '@smoke' }, async ({ serveRest, apiData, adminToken }) => {

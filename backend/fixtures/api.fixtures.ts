@@ -1,8 +1,8 @@
 import { test as base, expect } from '@playwright/test';
-import { ServeRestClient } from '@api/ServeRestClient';
-import { ApiDataRegistry } from '@api/ApiDataRegistry';
-import type { CreatedResponse, LoginResponse, User } from '@api/types';
-import { buildUser } from '@data/api.data';
+import { ServeRestClient } from '@backend/api/ServeRestClient';
+import { ApiDataRegistry } from '@backend/api/ApiDataRegistry';
+import type { CreatedResponse, LoginResponse, User } from '@backend/api/types';
+import { buildUser } from '@backend/data/api.data';
 
 /**
  * Fixtures de API. Cada test pide solo las precondiciones que necesita y

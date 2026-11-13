@@ -1,6 +1,6 @@
-import { test, expect } from '@fixtures/ui.fixtures';
-import { SortOption } from '@pages/InventoryPage';
-import { formatCents } from '@utils/price';
+import { test, expect } from '@frontend/fixtures/ui.fixtures';
+import { SortOption } from '@frontend/pages/InventoryPage';
+import { formatCents } from '@frontend/utils/price';
 
 test.describe('Ordenamiento del listado', { tag: '@ui' }, () => {
   test('UI-04 Ordenar por precio de menor a mayor', async ({ inventoryPage }) => {

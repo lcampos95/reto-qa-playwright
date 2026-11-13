@@ -1,6 +1,6 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 import { BasePage } from './BasePage';
-import { parsePriceToCents } from '@utils/price';
+import { parsePriceToCents } from '@frontend/utils/price';
 
 export interface SelectedProduct {
   name: string;
