@@ -1,0 +1,61 @@
+name: Playwright Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Si llega un nuevo push a la misma rama, cancela la ejecución anterior
+concurrency:
+  group: playwright-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: UI (chromium, firefox) + API
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Typecheck y lint
+        run: npm run check
+
+      - name: Instalar navegadores de Playwright
+        run: npx playwright install --with-deps chromium firefox
+
+      - name: Ejecutar la suite
+        run: npx playwright test
+        # Las URLs y usuarios se leen de env/.env.qa. Para otro entorno o credenciales
+        # privadas, definir aquí variables desde secrets, p. ej.:
+        # env:
+        #   SAUCE_PASSWORD: ${{ secrets.SAUCE_PASSWORD }}
+
+      - name: Publicar reporte HTML
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
+
+      - name: Publicar trazas de fallos
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results
+          path: test-results/
+          retention-days: 7
