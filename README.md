@@ -301,6 +301,19 @@ Característica: Ordenamiento del listado de productos
 4. Ejecuta `npx playwright test` (proyectos frontend y backend).
 5. Publica `playwright-report/` como artefacto (14 días) y, si hay fallos, también `test-results/` con trazas y videos.
 
+**Ejecución manual con tag (opcional).** En **Actions → Playwright Tests → Run workflow** aparece el campo *tag*:
+
+| Valor | Qué ejecuta |
+|---|---|
+| *(vacío)* | Suite completa |
+| `@smoke` | UI-01, UI-03, API-01, API-02 y API-03 |
+| `@ui` | Todo el frontend (Chromium + Firefox) |
+| `@api` | Todo el backend |
+| `@UI-01` … `@UI-04` | Un escenario de UI concreto |
+| `API-03` | Un escenario de API concreto (el filtro también busca en el título) |
+
+Internamente equivale a `npx playwright test --grep "<tag>"`. El login compartido (`frontend-setup`) se ejecuta siempre que haga falta, y un tag que no exista hace fallar la ejecución con *No tests found* en lugar de pasar sin probar nada. El tag usado queda en el resumen de la ejecución.
+
 ## 10. Cambios frecuentes
 
 | Cambio | Dónde |

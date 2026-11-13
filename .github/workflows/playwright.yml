@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag a ejecutar (opcional). Ej: @smoke, @ui, @api, @UI-03. Vacío = suite completa'
+        required: false
+        default: ''
+        type: string
 
 # Si llega un nuevo push a la misma rama, cancela la ejecución anterior
 concurrency:
@@ -38,11 +44,19 @@ jobs:
         run: npx playwright install --with-deps chromium firefox
 
       - name: Ejecutar la suite
-        run: npx playwright test
-        # Las URLs y usuarios se leen de env/.env.qa. Para otro entorno o credenciales
-        # privadas, definir aquí variables desde secrets, p. ej.:
-        # env:
-        #   SAUCE_PASSWORD: ${{ secrets.SAUCE_PASSWORD }}
+        # El tag llega por variable de entorno (no interpolado en el script) para evitar inyección de comandos.
+        # Las URLs y usuarios se leen de env/.env.qa; para credenciales privadas se añadirían aquí desde secrets,
+        # p. ej. SAUCE_PASSWORD: ${{ secrets.SAUCE_PASSWORD }}
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          if [ -n "$TAG" ]; then
+            echo "### Ejecución filtrada por tag: \`$TAG\`" >> "$GITHUB_STEP_SUMMARY"
+            npx playwright test --grep "$TAG"
+          else
+            echo "### Ejecución de la suite completa" >> "$GITHUB_STEP_SUMMARY"
+            npx playwright test
+          fi
 
       - name: Publicar reporte HTML
         if: ${{ !cancelled() }}
